@@ -13,7 +13,27 @@ const gui = new GUI()
 const canvas = document.querySelector('canvas.webgl')
 
 // Scene
-const scene = new THREE.Scene()
+const scene = new THREE.Scene();
+
+const createGradientTexture = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 512;
+    canvas.height = 512;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(1, '#000000'); // Subtle dark blue in the center
+    // gradient.addColorStop(0.001, '#111111'); // Black
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    return new THREE.CanvasTexture(canvas);
+};
+
+
+scene.background = createGradientTexture();
 
 // Mouse tracking
 const mouse = {
