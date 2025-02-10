@@ -30,7 +30,7 @@ window.addEventListener('mousemove', (event) => {
  * Galaxy
  */
 const parameters = {}
-parameters.count = 10000
+parameters.count = 40000
 parameters.size = 0.001
 parameters.radius = 5
 parameters.branches = 5
