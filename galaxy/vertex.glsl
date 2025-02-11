@@ -25,13 +25,13 @@ void main() {
     
     // Add slight randomness for organic movement
     modelPosition.xyz += aRandomness - 0.5;
-    
+    float flicker = 0.8 + 0.3 * sin(uTime * 2.0 + aRandomness.x * 5.0);
     // Transform to view and clip space
     vec4 viewPosition = viewMatrix * modelPosition;
     gl_Position = projectionMatrix * viewPosition;
     
     // Set point size with distance attenuation
-    gl_PointSize = uSize * aScale * (1.0 / -viewPosition.z);
+    gl_PointSize = uSize * aScale * (1.0 / -viewPosition.z) * flicker;
     
     // Pass color to fragment shader
     vColor = color;
