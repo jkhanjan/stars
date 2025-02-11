@@ -64,15 +64,15 @@ window.addEventListener('mousemove', (event) => {
  * Galaxy
  */
 const parameters = {}
-parameters.count = 40000
+parameters.count = 20000
 parameters.size = 0.001
 parameters.radius = 5
 parameters.branches = 5
 parameters.spin = 1
 parameters.randomness = 0.5
 parameters.randomnessPower = 3
-parameters.insideColor = '#f7f8fa'
-parameters.outsideColor = '#111111'
+parameters.insideColor = '#ffffff'
+parameters.outsideColor = '#ffffff'
 
 let geometry = null
 let material = null
@@ -145,13 +145,14 @@ const generateGalaxy = () =>
      * Material
      */
     material = new THREE.ShaderMaterial({
-        depthWrite: false,
         blending: THREE.AdditiveBlending,
+        depthWrite: false,
+
         vertexColors: true,
         vertexShader: galaxyVertexShader,
         fragmentShader: galaxyFragmentShader,
         uniforms: {
-            uSize: { value: 7 * renderer.getPixelRatio() },
+            uSize: { value: 25 * renderer.getPixelRatio() },
             uTime: { value: 0 }
         }
     })

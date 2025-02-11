@@ -24,7 +24,7 @@ void main() {
     modelPosition.z = cos(angle) * distanceFromCenter;
     
     // Add slight randomness for organic movement
-    modelPosition.xyz += aRandomness;
+    modelPosition.xyz += aRandomness - 0.5;
     
     // Transform to view and clip space
     vec4 viewPosition = viewMatrix * modelPosition;
