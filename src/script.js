@@ -15,6 +15,12 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene();
 
+// Background parameters
+const backgroundParameters = {
+    topColor: '#000000',
+    bottomColor: '#000814'
+}
+
 const createGradientTexture = () => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -23,8 +29,8 @@ const createGradientTexture = () => {
     canvas.height = 512;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(1, '#000000'); // Subtle dark blue in the center
-    // gradient.addColorStop(0.001, '#111111'); // Black
+    gradient.addColorStop(0.11, backgroundParameters.topColor);
+    gradient.addColorStop(1, backgroundParameters.bottomColor);
 
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -32,8 +38,16 @@ const createGradientTexture = () => {
     return new THREE.CanvasTexture(canvas);
 };
 
-
 scene.background = createGradientTexture();
+
+// Add background controls to GUI
+const backgroundFolder = gui.addFolder('Background')
+backgroundFolder.addColor(backgroundParameters, 'topColor').onChange(() => {
+    scene.background = createGradientTexture();
+})
+backgroundFolder.addColor(backgroundParameters, 'bottomColor').onChange(() => {
+    scene.background = createGradientTexture();
+})
 
 // Mouse tracking
 const mouse = {
@@ -57,8 +71,8 @@ parameters.branches = 5
 parameters.spin = 1
 parameters.randomness = 0.5
 parameters.randomnessPower = 3
-parameters.insideColor = '#fafcff'
-parameters.outsideColor = '#03a9fc'
+parameters.insideColor = '#f7f8fa'
+parameters.outsideColor = '#111111'
 
 let geometry = null
 let material = null
@@ -221,9 +235,9 @@ const clock = new THREE.Clock()
 // Camera movement parameters
 let targetPosition = camera.position.clone(); // Target position for the camera movement
 let isZooming = false;
-const zoomSpeed = 0.0005;
-let angle = 0;
-const radius = 5; // Base radius for the camera motion
+const zoomSpeed = 0.01;
+let angle = 7;
+const radius = 7; // Base radius for the camera motion
 
 // Detect click to toggle zooming (start/stop camera movement)
 window.addEventListener("click", () => {
@@ -251,18 +265,18 @@ const tick = () => {
         angle = elapsedTime * zoomSpeed;
 
         // Increase radius for cinematic effect
-        const dynamicRadius = radius + Math.sin(elapsedTime * 0.2) * 3;
+        const dynamicRadius = radius + Math.sin(elapsedTime * 0.2) * 1;
 
         // Calculate target positions for circular motion (X, Y, Z)
         const targetX = dynamicRadius * Math.cos(angle);
-        const targetZ = dynamicRadius * Math.atan(angle);
-        const targetY = 3 + Math.cos(angle * 0.9) * 5; // Smooth vertical movement
+        const targetZ = dynamicRadius * Math.sin(angle);
+        const targetY = 10 + Math.sin(angle * 2) * 2; // Gentler vertical movement
 
         // Transition the camera smoothly to the new target position
         targetPosition.set(targetX, targetY, targetZ);
 
         // Lerp for smooth transition (smooth camera movement)
-        camera.position.lerp(targetPosition, 0.05); // Adjust 0.05 to make the transition slower/faster
+        camera.position.lerp(targetPosition, 0.06); // Adjust 0.05 to make the transition slower/faster
 
         // Ensure the camera always looks at the center of the scene
         camera.lookAt(scene.position);
@@ -276,4 +290,3 @@ const tick = () => {
 };
 
 tick();
-
