@@ -1,0 +1,29 @@
+.main{
+  width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #afa18f;
+    font-size: 64px;
+    line-height: 66px;
+    cursor: default;
+}
+.body1{
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction:column;
+  align-items: center;
+  justify-content: center;
+  color: #afa18f;
+  font-size: 64px;
+  line-height: 66px;
+  cursor: default;
+}
+.body2{
+  background: #ec4e39;
+  clip-path: circle(10% at 50% 50%);
+  position: absolute;
+  color: black;
+}
