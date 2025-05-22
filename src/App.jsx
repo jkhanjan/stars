@@ -156,22 +156,23 @@ import { OrbitControls, Environment, Stage } from '@react-three/drei';
 // import AnimatedSPath from './section';
 // import MobileVersion from './MobileVersion';
 import Practice from './Practice';
-// import { HandPoints } from './setUpHandTracking';
+import { HandPoints } from './setUpHandTracking';
 import CarScene from './CarScene';
 import CrossroadScene from './CarScene2';
 import CarScene3 from './CarScene3';
+import Universe from './Universe';
 
-// const SCENES = [
-//   {
-//     Component: (props) => <CarScene {...props} />
-//   },
-//   {
-//     Component: (props) => <CrossroadScene {...props} />
-//   },
-//   {
-//     Component: (props) => <CarScene3 {...props} />
-//   },
-// ]
+const SCENES = [
+  {
+    Component: (props) => <CarScene {...props} />
+  },
+  {
+    Component: (props) => <CrossroadScene {...props} />
+  },
+  {
+    Component: (props) => <CarScene3 {...props} />
+  },
+]
 
 export default function Scene() {
   const [index, setIndex] = useState(0);
@@ -186,11 +187,12 @@ export default function Scene() {
 
   return (
     <div className="w-screen h-screen">
-      <Practice />
     {/* <Component 
       index={index}
       setIndex={setIndex}
     /> */}
+    {/* <Practice /> */}
+    <Universe />
   </div>
     // <Canvas
     //   camera={{ position: [5, 2, 10], fov: 45 }}
@@ -205,5 +207,6 @@ export default function Scene() {
     // </Canvas>
   );
 }
+
 
 

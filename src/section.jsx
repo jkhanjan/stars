@@ -1,149 +1,162 @@
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import seatBelt from '/Seatbelt.png'
 
+const points = [
+    { x: 70, y: 50, label: "Own the road (not just survive it)", image: seatBelt.src },
+    { x: 370, y: 50, label: "Road safety is non-negotiable.", image: seatBelt.src },
+    { x: 670, y: 50, label: "Bad habits? We fix them before they start", image: {seatBelt} },
+    { x: 510, y: 250, label: "No theory overload", image: {seatBelt} },
+    { x: 210, y: 250, label: "Your first car? Consider it handled", image: {seatBelt} },
+  ];
+const createPathSegment = (p1, p2, index) => {
+  const midX = (p1.x + p2.x) / 2;
+  const midY = (p1.y + p2.y) / 2;
+  const dir = index % 2 === 0 ? 1 : 1;
+  const offset = 30;
+  const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const length = Math.sqrt(dx * dx + dy * dy);
 
+  return `M ${p1.x} ${p1.y} 
+  S ${midX + dir * offset * (-dy / length)}, ${midY + dir * offset * (dx / length)} ${midX}, ${midY}
+  S ${midX - dir * offset * (-dy / length)}, ${midY - dir * offset * (dx / length)} ${p2.x}, ${p2.y}`;
+};
 
-
-// import React, { useEffect, useState } from "react";
-
-// import { motion } from "framer-motion";
-
-// const points = [
-//   { x: 70, y: 50, label: "Own the road (not just survive it)" },
-//   { x: 370, y: 50, label: "Road safety is non-negotiable." },
-//   { x: 670, y: 50, label: "Bad habits? We fix them before they start" },
-//   { x: 510, y: 250, label: "No theory overload" },
-//   { x: 210, y: 250, label: "Your first car? Consider it handled" },
-// ];
-
-// const createPathSegment = (p1, p2, index) => {
-//   const midX = (p1.x + p2.x) / 2;
-//   const midY = (p1.y + p2.y) / 2;
-//   const dir = index % 2 === 0 ? 1 : 1;
-//   const offset = 30;
-//   const dx = p2.x - p1.x, dy = p2.y - p1.y;
-//   const length = Math.sqrt(dx * dx + dy * dy);
-
-//   return `M ${p1.x} ${p1.y} 
-//   S ${midX + dir * offset * (-dy / length)}, ${midY + dir * offset * (dx / length)} ${midX}, ${midY}
-//   S ${midX - dir * offset * (-dy / length)}, ${midY - dir * offset * (dx / length)} ${p2.x}, ${p2.y}`;
-// };
-
-// const SequentialPathAnimation = () => {
-//   const [activeSegment, setActiveSegment] = useState(0);
-//   const [pathProgress, setPathProgress] = useState(0);
-//   const animationDuration = 1.5;
+const SequentialPathAnimation = () => {
+  const [activeSegment, setActiveSegment] = useState(0);
+  const [pathProgress, setPathProgress] = useState(0);
+  const animationDuration = 2.7;
   
-//   useEffect(() => {
-//     let animationFrame;
-//     let startTime = null;
+  const allPoints = [...points, points[0]];
+  const totalSegments = allPoints.length - 1;
+  
+  useEffect(() => {
+    let animationFrame;
+    let startTime = null;
     
-//     const animate = (timestamp) => {
-//       if (!startTime) startTime = timestamp;
-//       const elapsed = timestamp - startTime;
-//       const progress = Math.min(elapsed / (animationDuration * 1000), 1);
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / (animationDuration * 1000), 1);
       
-//       setPathProgress(progress);
+      setPathProgress(progress);
       
-//       if (progress < 1) {
-//         animationFrame = requestAnimationFrame(animate);
-//       } else {
-        
-//         if (activeSegment < points.length - 2) {
-//           setTimeout(() => {
-//             setActiveSegment(prev => prev + 1);
-//             setPathProgress(0);
-//           }, 300);
-//         }
-//       }
-//     };
+     if (progress < 1) {
+    animationFrame = requestAnimationFrame(animate);
+  } else {
+    setTimeout(() => {
+      if (activeSegment === totalSegments - 1) {
+        setActiveSegment(0);
+      } else {
+        setActiveSegment(prev => prev + 1);
+      }
+      setPathProgress(0);
+    }, 300);}  
+    };
     
-//     animationFrame = requestAnimationFrame(animate);
+    animationFrame = requestAnimationFrame(animate);
     
-//     return () => {
-//       cancelAnimationFrame(animationFrame);
-//     };
-//   }, [activeSegment]);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [activeSegment, totalSegments]);
 
-//   return (
-//     <svg width="788" height="366" style={{ background: "#fff" }}>
-//       {/* Red dashed paths (underneath) */}
-//       {points.slice(0, 4).map((_, i) => (
-//         <path
-//           key={i}
-//           d={createPathSegment(points[i], points[i + 1], i)}
-//           fill="none"
-//           stroke="red"
-//           opacity={0.2}
-//           strokeWidth="4"
-//           strokeDasharray="8 6"
-//         />
-//       ))}
+  return (
+    <svg width="788" height="366" style={{ background: "#fff" }}>
+      {allPoints.slice(0, totalSegments).map((_, i) => (
+        <path
+          key={`gray-${i}`}
+          d={createPathSegment(allPoints[i], allPoints[i + 1], i)}
+          fill="none"
+          stroke="gray"
+          opacity={0.2}
+          strokeWidth="4"
+          strokeDasharray="8 6"
+        />
+      ))}
 
-//       {points.slice(0, 4).map((_, i) => (
-//         <motion.path
-//           key={`blue-${i}`}
-//           d={createPathSegment(points[i], points[i + 1], i)}
-//           fill="none"
-//           stroke="red"
-//           opacity={0.9}
-//           strokeWidth="4"
-//           initial={{ pathLength: 0 }}
-//           animate={{
-//             pathLength: i === activeSegment ? pathProgress : i < activeSegment ? 1 : 0
-//           }}
-//           transition={{ duration: 0 }} 
-//         />
-//       ))}
+      {allPoints.slice(0, totalSegments).map((_, i) => (
+        <motion.path
+          key={`blue-${i}`}
+          d={createPathSegment(allPoints[i], allPoints[i + 1], i)}
+          fill="none"
+          stroke="#B1E3FF"
+          opacity={0.9}
+          strokeWidth="4"
+          initial={{ pathLength: 0 }}
+          animate={{
+            pathLength: i === activeSegment ? pathProgress : i < activeSegment ? 1 : 0
+          }}
+          transition={{ duration: 0 }} 
+        />
+      ))}
       
-//       {points.map((p, i) => (
-//         <motion.g key={i}>
-          
-//           <motion.circle
-//             cx={p.x}
-//             cy={p.y}
-//             r="42"
-//             fill={"rgba(255, 219, 172, 1.0)"}
-//             animate={{ scale: i === activeSegment || i === activeSegment + 1 ? [0.8, 1.2, 1] : 1 }}
-//             transition={{ duration: 0.5 }}
-//           />
+      {points.map((p, i) => (
+        <motion.g key={i}>  
+            <motion.circle
+      cx={p.x}
+      cy={p.y}
+      r="42"
+      fill="#F5F5F5"
+      initial={{ scale: 1 }}
+      animate={{ 
+        scale: (i === activeSegment && activeSegment < points.length) ? 
+               [1, 1.2, 1] : 1 
+      }}
+      transition={{ duration: 0.5 }}
+    />
+          <motion.circle
+            cx={p.x}
+            cy={p.y}
+            r="24"
+            fill={i <= activeSegment ? "#1E63E7" : "#6A9DFE"}
+            initial={{ scale: 1 }}
+            animate={{ 
+              scale: i === activeSegment || 
+                     (activeSegment === totalSegments - 1 && i === 0) ? 
+                     [1, 1.2, 1] : 1 
+            }}
+            transition={{ duration: 0.5 }}
+          />
 
-//           {/* Blue Circle */}
-//           <motion.circle
-//             cx={p.x}
-//             cy={p.y}
-//             r="24"
-//             fill={i <= activeSegment + 1 ? "rgb(33, 109, 254)" : "rgba(255, 255, 255, 0.2)"}
-//             animate={{ scale: i === activeSegment || i === activeSegment + 1 ? [0.8, 1.2, 1] : 1 }}
-//             transition={{ duration: 0.5 }}
-//           />
+            <image
+            href={p.image} 
+            x={p.x - 12} 
+            y={p.y - 12} 
+            width="24"
+            height="24"
+            clipPath="circle(12px)"
+            />
 
-//           <image
-//             href="/Seatbelt.png" 
-//             x={p.x - 12} 
-//             y={p.y - 12} 
-//             width="24"
-//             height="24"
-//             clipPath="circle(12px)" // Ensures it stays inside the circle
-//           />
+          <motion.foreignObject
+            x={p.x - 70} 
+            y={p.y + 60}
+            width="150" 
+            height="50" 
+            animate={{ 
+              opacity: i <= activeSegment ? 1 : 0.5,
+              ...(activeSegment === totalSegments - 1 && i === 0 ? { opacity: [0.5, 1] } : {})
+            }}
+            transition={{ duration: 0.3 }}
+          >
+            <div style={{ 
+              textAlign: "center", 
+              fontSize: "17px", 
+              color: "black", 
+              wordWrap: "break-word",
+              lineHeight: "1.3"
+            }}>
+              {p.label}
+            </div>
+          </motion.foreignObject>
+        </motion.g>
+      ))}
+    </svg>
+  );
+};
 
-//           {/* Label */}
-//           <motion.foreignObject
-//             x={p.x - 70} 
-//             y={p.y + 60}
-//             width="150" 
-//             height="50" 
-//             animate={{ opacity: i <= activeSegment + 1 ? 1 : 0.5 }}
-//           >
-//             <div style={{ textAlign: "center", fontSize: "17px", color: "black", wordWrap: "break-word" }}>
-//               {p.label}
-//             </div>
-//           </motion.foreignObject>
-//         </motion.g>
-//       ))}
-//     </svg>
-//   );
-// };
+export default SequentialPathAnimation;
 
-// export default SequentialPathAnimation;
 // "use client";
 
 // const AnimatedSPath = () => {
