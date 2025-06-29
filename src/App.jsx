@@ -146,67 +146,124 @@
 
 
 
-import React, { Suspense, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, Stage } from '@react-three/drei';
-// import Model from './section';
-// import SVG from './section';
-// import SequentialPathAnimation from './section';
-// import GalaxyScene from './section';
-// import AnimatedSPath from './section';
-// import MobileVersion from './MobileVersion';
-import Practice from './Practice';
-import { HandPoints } from './setUpHandTracking';
-import CarScene from './CarScene';
-import CrossroadScene from './CarScene2';
-import CarScene3 from './CarScene3';
-import Universe from './Universe';
+// import React, { Suspense, useState } from 'react';
+// import { Canvas } from '@react-three/fiber';
+// import { OrbitControls, Environment, Stage } from '@react-three/drei';
+// // import Model from './section';
+// // import SVG from './section';
+// // import SequentialPathAnimation from './section';
+// // import GalaxyScene from './section';
+// // import AnimatedSPath from './section';
+// // import MobileVersion from './MobileVersion';
+// import Practice from './Practice';
+// import { HandPoints } from './setUpHandTracking';
+// import CarScene from './CarScene';
+// import CrossroadScene from './CarScene2';
+// import CarScene3 from './CarScene3';
+// import Universe from './Universe';
+// import ApiTesterGrid from './dataGridPostman/ApiTester';
 
-const SCENES = [
-  {
-    Component: (props) => <CarScene {...props} />
-  },
-  {
-    Component: (props) => <CrossroadScene {...props} />
-  },
-  {
-    Component: (props) => <CarScene3 {...props} />
-  },
-]
+// const SCENES = [
+//   {
+//     Component: (props) => <CarScene {...props} />
+//   },
+//   {
+//     Component: (props) => <CrossroadScene {...props} />
+//   },
+//   {
+//     Component: (props) => <CarScene3 {...props} />
+//   },
+// ]
 
-export default function Scene() {
-  const [index, setIndex] = useState(0);
-  // const scenes = [<CarScene />, <CrossroadScene />, <CarScene3 />];
+// export default function Scene() {
+//   const [index, setIndex] = useState(0);
+//   // const scenes = [<CarScene />, <CrossroadScene />, <CarScene3 />];
   
 
-  // const nextScene = () => {
-  //   setIndex((prevIndex) => (prevIndex + 1) % scenes.length);
-  // };
+//   // const nextScene = () => {
+//   //   setIndex((prevIndex) => (prevIndex + 1) % scenes.length);
+//   // };
 
-  const Component = SCENES[index].Component;
+//   const Component = SCENES[index].Component;
+
+//   return (
+//     <div className="w-screen h-screen">
+//     {/* <Component 
+//       index={index}
+//       setIndex={setIndex}
+//     /> */}
+//     {/* <Practice /> */}
+//     {/* <Universe /> */}
+
+    
+//     <ApiTesterGrid />
+//   </div>
+//     // <Canvas
+//     //   camera={{ position: [5, 2, 10], fov: 45 }}
+//     //   style={{ width: '100vw', height: '100vh' }}
+//     // >
+//     //   <Suspense fallback={null}>
+//     //     <Stage environment="city" intensity={0.6}>
+//     //       <Model />
+//     //     </Stage>
+//     //     <OrbitControls enableZoom={true} autoRotate />
+//     //   </Suspense>
+//     // </Canvas>
+//   );
+// }
+
+
+
+import React, { useEffect, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Scene from "./components/Scene";
+import { Grid } from "@react-three/drei";
+import GridLayout from "./components/GridLayout";
+
+gsap.registerPlugin(ScrollTrigger);
+
+function App() {
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const tween = gsap.to(
+      {},
+      {
+        scrollTrigger: {
+          trigger: "#main-container",
+          start: "top top",
+          end: "bottom bottom",
+          scrub: true,
+          onUpdate: (self) => setScrollProgress(self.progress),
+        },
+      }
+    );
+
+    return () => {
+      tween.kill();
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+    };
+  }, []);
 
   return (
-    <div className="w-screen h-screen">
-    {/* <Component 
-      index={index}
-      setIndex={setIndex}
-    /> */}
-    {/* <Practice /> */}
-    <Universe />
-  </div>
-    // <Canvas
-    //   camera={{ position: [5, 2, 10], fov: 45 }}
-    //   style={{ width: '100vw', height: '100vh' }}
-    // >
-    //   <Suspense fallback={null}>
-    //     <Stage environment="city" intensity={0.6}>
-    //       <Model />
-    //     </Stage>
-    //     <OrbitControls enableZoom={true} autoRotate />
-    //   </Suspense>
-    // </Canvas>
+    <div
+      id="main-container"
+      className="relative w-full h-[300vh] overflow-hidden"
+    >
+        <GridLayout />
+
+      <div className="w-full h-[100vh] fixed top-0 left-0 z-10 flex items-center justify-center">
+        <Canvas
+        camera={{ position: [0, 0, 5], fov: 60 }}
+        className="absolute bottom-0 left-0 w-full h-full"
+      >
+        <ambientLight intensity={0.8} />
+        <Scene scrollProgress={scrollProgress} />
+      </Canvas></div>
+    </div>
   );
 }
 
-
-
+export default App;
