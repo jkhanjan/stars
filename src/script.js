@@ -1,293 +1,395 @@
-import * as THREE from 'three'
-import GUI from 'lil-gui'
-import galaxyVertexShader from '../galaxy/vertex.glsl';
-import galaxyFragmentShader from '../galaxy/fragment.glsl';
+import * as THREE from "three";
+import GUI from "lil-gui";  
+import { bigDipperStars, cassiopeiaStars, defaultStars, leoStars, orionStars } from "./constants/constant";
+import { createBigDipper, createCassiopeia, createLeo, createOrion } from "./utils/animation";
+import { constellationLineMaterial } from "./utils/connectingLines";
+import { generateGalaxy } from "./utils/generateGalaxy";
+const gui = new GUI();
+const canvas = document.querySelector("canvas.webgl");
 
-/**
- * Base
- */
-// Debug
-const gui = new GUI()
-
-// Canvas
-const canvas = document.querySelector('canvas.webgl')
-
-// Scene
 const scene = new THREE.Scene();
-
-// Background parameters
 const backgroundParameters = {
-    topColor: '#000000',
-    bottomColor: '#000814'
-}
+  topColor: "#000000",
+  bottomColor: "#000814",
+};
 
 const createGradientTexture = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
 
-    canvas.width = 512;
-    canvas.height = 512;
+  canvas.width = 512;
+  canvas.height = 512;
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0.11, backgroundParameters.topColor);
-    gradient.addColorStop(1, backgroundParameters.bottomColor);
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0.11, backgroundParameters.topColor);
+  gradient.addColorStop(1, backgroundParameters.bottomColor);
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    return new THREE.CanvasTexture(canvas);
+  return new THREE.CanvasTexture(canvas);
 };
 
 scene.background = createGradientTexture();
 
-// Add background controls to GUI
-const backgroundFolder = gui.addFolder('Background')
-backgroundFolder.addColor(backgroundParameters, 'topColor').onChange(() => {
-    scene.background = createGradientTexture();
-})
-backgroundFolder.addColor(backgroundParameters, 'bottomColor').onChange(() => {
-    scene.background = createGradientTexture();
-})
+const backgroundFolder = gui.addFolder("Background");
+backgroundFolder.addColor(backgroundParameters, "topColor").onChange(() => {
+  scene.background = createGradientTexture();
+});
+backgroundFolder.addColor(backgroundParameters, "bottomColor").onChange(() => {
+  scene.background = createGradientTexture();
+});
 
-// Mouse tracking
 const mouse = {
-    x: 0,
-    y: 0
+  x: 0,
+  y: 0,
+};
+
+window.addEventListener("mousemove", (event) => {
+  mouse.x = (event.clientX / window.innerWidth - 1.9) * 0.2;
+  mouse.y = (event.clientY / window.innerHeight - 1.9) * 0.2;
+});
+
+const parameters = {};
+parameters.count = 6000;
+parameters.size = 0.001;
+parameters.radius = 5;
+parameters.branches = 5;
+parameters.spin = 1;
+parameters.randomness = 0.5;
+parameters.randomnessPower = 3;
+parameters.insideColor = "#ffffff";
+parameters.outsideColor = "#ffffff";
+
+let geometry = null;
+let material = null;
+let points = null;
+
+const constellationMode = {
+  currentConstellation: null,
+  constellationLines: [],
+  constellationStars: [],
+  savedConstellations: [],
+  isAnimating: false,
+  animationProgress: 0,
+};
+
+const constellationStarMaterial = new THREE.PointsMaterial({
+  color: 0xffffff,
+  size: 0.05,
+  transparent: true,
+  opacity: 0.6,
+  map: createCircleTexture(),
+  alphaTest: 0.001,
+  sizeAttenuation: true
+});
+
+
+function createCircleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  
+  const context = canvas.getContext('2d');
+  const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.2, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.4, 'rgba(255,255,255,0.8)');
+  gradient.addColorStop(1, 'rgba(255,255,255,0)');
+  
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 64, 64);
+  
+  return new THREE.CanvasTexture(canvas);
 }
 
-window.addEventListener('mousemove', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) - 0.5
-    mouse.y = (event.clientY / window.innerHeight) - 0.5
-})
+const interactiveMode = {
+  isActive: true,
+  selectedStars: [],
+  connectionLines: [],
+  hoveredStar: null,
+  allConstellationStars: null,
+};
 
-/**
- * Galaxy
- */
-const parameters = {}
-parameters.count = 20000
-parameters.size = 0.001
-parameters.radius = 5
-parameters.branches = 5
-parameters.spin = 1
-parameters.randomness = 0.5
-parameters.randomnessPower = 3
-parameters.insideColor = '#ffffff'
-parameters.outsideColor = '#ffffff'
+const raycaster = new THREE.Raycaster();
+const mousePosition = new THREE.Vector2();
 
-let geometry = null
-let material = null
-let points = null
+const createDefaultConstellationPoints = () => {
+  
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(defaultStars.length * 3);
+  
+  defaultStars.forEach((star, i) => {
+    positions[i * 3] = star.x;
+    positions[i * 3 + 1] = star.y;
+    positions[i * 3 + 2] = star.z;
+  });
+  
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  
+  const stars = new THREE.Points(geometry, constellationStarMaterial);
+  scene.add(stars);
+  interactiveMode.allConstellationStars = stars;
+  
+  return defaultStars;
+};
 
-const generateGalaxy = () =>
-{
-    if(points !== null)
-    {
-        geometry.dispose()
-        material.dispose()
-        scene.remove(points)
+const createInteractiveLine = (point1, point2) => {
+  const geometry = new THREE.BufferGeometry().setFromPoints([point1, point2]);
+  const line = new THREE.Line(geometry, constellationLineMaterial);
+  scene.add(line);
+  interactiveMode.connectionLines.push(line);
+  return line;
+};
+
+const onMouseClick = (event) => {
+  if (!interactiveMode.isActive) return;
+
+  mousePosition.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mousePosition.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mousePosition, camera);
+
+  if (interactiveMode.allConstellationStars) {
+    const intersects = raycaster.intersectObject(interactiveMode.allConstellationStars);
+    
+    if (intersects.length > 0) {
+      const intersection = intersects[0];
+      const starPosition = intersection.point;
+
+      interactiveMode.selectedStars.push(starPosition.clone());
+      
+      if (interactiveMode.selectedStars.length >= 2) {
+        const lastIndex = interactiveMode.selectedStars.length - 1;
+        createInteractiveLine(
+          interactiveMode.selectedStars[lastIndex - 1],
+          interactiveMode.selectedStars[lastIndex]
+        );
+      }
     }
+  }
+};
 
-    /**
-     * Geometry
-     */
-    geometry = new THREE.BufferGeometry()
+const clearInteractiveConnections = () => {
+  interactiveMode.connectionLines.forEach(line => {
+    scene.remove(line);
+    line.geometry.dispose();
+  });
+  interactiveMode.connectionLines = [];
+  interactiveMode.selectedStars = [];
+};
 
-    const positions = new Float32Array(parameters.count * 3)
-    const colors = new Float32Array(parameters.count * 3)
-    const scales = new Float32Array(parameters.count * 1)
-    const randomness = new Float32Array(parameters.count * 3)
+canvas.addEventListener('click', onMouseClick);
 
-    const insideColor = new THREE.Color(parameters.insideColor)
-    const outsideColor = new THREE.Color(parameters.outsideColor)
-
-    for (let i = 0; i < parameters.count; i++) {
-        const i3 = i * 3;
+const createConstellationStars = (starPositions) => {
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(starPositions.length * 3);
+  
+  starPositions.forEach((star, i) => {
+    positions[i * 3] = star.x;
+    positions[i * 3 + 1] = star.y;
+    positions[i * 3 + 2] = star.z;
+  });
+  
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  
+  const stars = new THREE.Points(geometry, constellationStarMaterial);
+  scene.add(stars);
+  constellationMode.constellationStars.push(stars);
+  
+  // Animate stars appearing
+  const startTime = Date.now();
+  const duration = 800;
+  
+  const animateStars = () => {
+    const elapsed = Date.now() - startTime;
+    const progress = Math.min(elapsed / duration, 1);
     
-        // Generate random position within a square region
-        const size = parameters.radius; // Define the square size (same as previous radius)
-        const x = (Math.random() - 0.5) * size * 2; // Spread points inside the square
-        const y = (Math.random() - 0.5) * size * 2;
-        const z = (Math.random() - 0.5) * size * 2;
+    // Pulse effect for stars
+    const pulse = 0.4;
+    constellationStarMaterial.opacity = progress * pulse;
+    constellationStarMaterial.size = 0.03 + (progress * 0.02);
     
-        // Apply pulsation effect for dynamic movement
-        const pulse = Math.sin(performance.now() * 0.0002 + x * 8) * 10.5;
-        positions[i3] = x + pulse * (Math.random() - 0.5);
-        positions[i3 + 1] = y + pulse * (Math.random() - 0.5);
-        positions[i3 + 2] = z + pulse * (Math.random() - 0.5);
-    
-        // Apply random movement variation
-        const randomX = Math.pow(Math.random(), parameters.randomnessPower) * parameters.randomness * size * (Math.random() < 0.5 ? 1 : -1);
-        const randomY = Math.pow(Math.random(), parameters.randomnessPower) * parameters.randomness * size * (Math.random() < 0.5 ? 1 : -1);
-        const randomZ = Math.pow(Math.random(), parameters.randomnessPower) * parameters.randomness * size * (Math.random() < 0.5 ? 1 : -1);
-    
-        randomness[i3] = randomX;
-        randomness[i3 + 1] = randomY;
-        randomness[i3 + 2] = randomZ;
-    
-        // Color mapping based on distance from the center
-        const distanceFromCenter = Math.max(Math.abs(x), Math.abs(y), Math.abs(z)) / size;
-        const mixedColor = insideColor.clone();
-        mixedColor.lerp(outsideColor, distanceFromCenter);
-    
-        colors[i3] = mixedColor.r;
-        colors[i3 + 1] = mixedColor.g;
-        colors[i3 + 2] = mixedColor.b;
-    
-        scales[i] = Math.random();
+    if (progress < 1) {
+      requestAnimationFrame(animateStars);
+    } else {
+      constellationStarMaterial.opacity = 0.8;
+      constellationStarMaterial.size = 0.05;
     }
-    
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-    geometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1))
-    geometry.setAttribute('aRandomness', new THREE.BufferAttribute(randomness, 3))
+  };
+  
+  animateStars();
+};
 
-    /**
-     * Material
-     */
-    material = new THREE.ShaderMaterial({
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
+const clearConstellation = () => {
+  // Clear predefined constellation lines
+  constellationMode.constellationLines.forEach(line => {
+    scene.remove(line);
+    line.geometry.dispose();
+  });
+  constellationMode.constellationLines = [];
+  
+  // Clear predefined constellation stars
+  constellationMode.constellationStars.forEach(stars => {
+    scene.remove(stars);
+    stars.geometry.dispose();
+  });
+  constellationMode.constellationStars = [];
+  
+  // Clear interactive connections
+  clearInteractiveConnections();
+  
+  constellationMode.currentConstellation = null;
+  constellationMode.isAnimating = false;
+};
 
-        vertexColors: true,
-        vertexShader: galaxyVertexShader,
-        fragmentShader: galaxyFragmentShader,
-        uniforms: {
-            uSize: { value: 25 * renderer.getPixelRatio() },
-            uTime: { value: 0 }
-        }
-    })
+const initializeScene = () => {
+  const result = generateGalaxy(parameters, renderer, geometry, material, points, scene);
+  geometry = result.geometry;
+  material = result.material;
+  points = result.points;
+  createDefaultConstellationPoints();
+};
 
-    /**
-     * Points
-     */
-    points = new THREE.Points(geometry, material)
-    scene.add(points)
-}
+const constellationFolder = gui.addFolder("� Constellations");
 
-gui.add(parameters, 'count').min(100).max(100000).step(100).onFinishChange(generateGalaxy)
-gui.add(parameters, 'radius').min(0.01).max(20).step(0.01).onFinishChange(generateGalaxy)
-gui.add(parameters, 'branches').min(2).max(20).step(1).onFinishChange(generateGalaxy)
-gui.add(parameters, 'randomness').min(0).max(2).step(0.001).onFinishChange(generateGalaxy)
-gui.add(parameters, 'randomnessPower').min(1).max(10).step(0.001).onFinishChange(generateGalaxy)
-gui.addColor(parameters, 'insideColor').onFinishChange(generateGalaxy)
-gui.addColor(parameters, 'outsideColor').onFinishChange(generateGalaxy)
+const constellationInfo = { currentConstellation: "None" };
+constellationFolder.add(constellationInfo, "currentConstellation").name("Current").listen();
 
-/**
- * Sizes
- */
+constellationFolder.add({ 
+  createBigDipper: () => {
+    clearConstellation();
+    createBigDipper(constellationMode, createConstellationStars, scene);
+  }
+}, "createBigDipper").name("⭐ Big Dipper").onChange(() => {
+  constellationInfo.currentConstellation = "Big Dipper";
+});
+constellationFolder.add({ 
+  createOrion: () => {
+    clearConstellation();
+    createOrion(constellationMode, createConstellationStars, scene);
+  }
+}, "createOrion").name("🏹 Orion").onChange(() => {
+  constellationInfo.currentConstellation = "Orion";
+});
+constellationFolder.add({ 
+  createCassiopeia: () => {
+    clearConstellation();
+    createCassiopeia(constellationMode, createConstellationStars, scene);
+  }
+}, "createCassiopeia").name("👑 Cassiopeia").onChange(() => {
+  constellationInfo.currentConstellation = "Cassiopeia";
+});
+constellationFolder.add({ 
+  createLeo: () => {
+    clearConstellation();
+    createLeo(constellationMode, createConstellationStars, scene);
+  }
+}, "createLeo").name("🦁 Leo").onChange(() => {
+  constellationInfo.currentConstellation = "Leo";
+});
+
+// Clear function
+constellationFolder.add({ 
+  clear: () => {
+    clearConstellation();
+    constellationInfo.currentConstellation = "None";
+  }
+}, "clear").name("�️ Clear");
+
+// Line appearance controls
+const lineFolder = constellationFolder.addFolder("📏 Line Style");
+lineFolder.addColor(constellationLineMaterial, "color").name("Line Color");
+lineFolder.add(constellationLineMaterial, "opacity", 0.1, 1, 0.1).name("Line Opacity");
+
+// Point appearance controls
+const pointFolder = constellationFolder.addFolder("⭐ Point Style");
+pointFolder.addColor(constellationStarMaterial, "color").name("Point Color");
+pointFolder.add(constellationStarMaterial, "size", 0.05, 0.3, 0.01).name("Point Size");
+pointFolder.add(constellationStarMaterial, "opacity", 0.1, 1, 0.1).name("Point Opacity");
+
+// Interactive mode controls
+const interactiveFolder = constellationFolder.addFolder("🎯 Interactive Mode");
+interactiveFolder.add(interactiveMode, "isActive").name("Click to Connect");
+interactiveFolder.add({ 
+  clear: () => clearInteractiveConnections()
+}, "clear").name("🗑️ Clear Connections");
 const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-}
+  width: window.innerWidth,
+  height: window.innerHeight,
+};
 
-window.addEventListener('resize', () =>
-{
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
+window.addEventListener("resize", () => {
+  // Update sizes
+  sizes.width = window.innerWidth;
+  sizes.height = window.innerHeight;
 
-    // Update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
+  // Update camera
+  camera.aspect = sizes.width / sizes.height;
+  camera.updateProjectionMatrix();
 
-    // Update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-})
+  // Update renderer
+  renderer.setSize(sizes.width, sizes.height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
 
-/**
- * Camera
- */
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 75)
-camera.position.x = 2
-camera.position.y = 3
-camera.position.z = 3
-scene.add(camera)
-
-// Store initial camera position
-const initialCameraPosition = {
-    x: camera.position.x,
-    y: camera.position.y,
-    z: camera.position.z
-}
-
-// Smooth camera movement variables
-const cameraTarget = {
-    x: initialCameraPosition.x,
-    y: initialCameraPosition.y
-}
+const camera = new THREE.PerspectiveCamera(
+  75,
+  sizes.width / sizes.height,
+  0.1,
+  75
+);
+camera.position.x = 2;
+camera.position.y = 2;
+camera.position.z = 3;
+scene.add(camera);
 
 /**
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
-})
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  canvas: canvas,
+});
+renderer.setSize(sizes.width, sizes.height);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-generateGalaxy()
+// Initialize the scene with stars and constellation points
+initializeScene();
 
-/**
- * Animate
- */
-const clock = new THREE.Clock()
-
-// Camera movement parameters
+const clock = new THREE.Clock();
 let targetPosition = camera.position.clone(); // Target position for the camera movement
 let isZooming = false;
 const zoomSpeed = 0.01;
 let angle = 7;
 const radius = 7; // Base radius for the camera motion
 
-// Detect click to toggle zooming (start/stop camera movement)
-window.addEventListener("click", () => {
-    if (isZooming) {
-        // Stop the animation (smoothly transition back to initial position)
-        isZooming = false;
-    } else {
-        // Start the animation (smoothly transition to target position)
-        isZooming = true;
-        targetPosition = camera.position.clone(); // Store the current position as the starting point
-    }
-});
-
 // Animate function
 const tick = () => {
-    const elapsedTime = clock.getElapsedTime();
+  const elapsedTime = clock.getElapsedTime();
+
+  // Update shader time uniform
+  if (material && material.uniforms && material.uniforms.uTime) {
     material.uniforms.uTime.value = elapsedTime;
+  }
 
-    // Smooth camera movement with mouse tracking
-    camera.position.x += (mouse.x * 2 - camera.position.x) * 0.05;
-    camera.position.y += (-mouse.y * 2 - camera.position.y) * 0.05;
+  camera.position.x += (mouse.x * 2 - camera.position.x) * 0.09;
+  camera.position.y += (-mouse.y * 2 - camera.position.y) * 0.09;
 
-    if (isZooming) {
-        // Update angle for smooth circular motion
-        angle = elapsedTime * zoomSpeed;
+  if (isZooming) {
+    angle = elapsedTime * zoomSpeed;
 
-        // Increase radius for cinematic effect
-        const dynamicRadius = radius + Math.sin(elapsedTime * 0.2) * 1;
+    const dynamicRadius = radius + Math.sin(elapsedTime * 0.2) * 1;
+    const targetX = dynamicRadius * Math.cos(angle);
+    const targetZ = dynamicRadius * Math.sin(angle);
+    const targetY = 10 + Math.sin(angle * 2) * 2; // Gentler vertical movement
 
-        // Calculate target positions for circular motion (X, Y, Z)
-        const targetX = dynamicRadius * Math.cos(angle);
-        const targetZ = dynamicRadius * Math.sin(angle);
-        const targetY = 10 + Math.sin(angle * 2) * 2; // Gentler vertical movement
+    targetPosition.set(targetX, targetY, targetZ);
+    camera.position.lerp(targetPosition, 0.06); // Adjust 0.05 to make the transition slower/faster
 
-        // Transition the camera smoothly to the new target position
-        targetPosition.set(targetX, targetY, targetZ);
-
-        // Lerp for smooth transition (smooth camera movement)
-        camera.position.lerp(targetPosition, 0.06); // Adjust 0.05 to make the transition slower/faster
-
-        // Ensure the camera always looks at the center of the scene
-        camera.lookAt(scene.position);
-    }
-
-    // Render the scene
-    renderer.render(scene, camera);
-
-    // Loop the animation
-    window.requestAnimationFrame(tick);
+    camera.lookAt(scene.position);
+  }
+  renderer.render(scene, camera);
+  window.requestAnimationFrame(tick);
 };
-
 tick();
+

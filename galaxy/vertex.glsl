@@ -32,7 +32,5 @@ void main() {
     
     // Set point size with distance attenuation
     gl_PointSize = uSize * aScale * (1.0 / -viewPosition.z) * flicker;
-    
-    // Pass color to fragment shader
-    vColor = color;
+
 }
