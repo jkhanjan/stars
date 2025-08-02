@@ -6,7 +6,7 @@ import { constellationLineMaterial } from "./utils/connectingLines";
 import { generateGalaxy } from "./utils/generateGalaxy";
 
 const parameters = {};
-parameters.count = 6000;
+parameters.count = 5000;
 parameters.size = 0.001;
 parameters.radius = 5;
 parameters.branches = 5;
