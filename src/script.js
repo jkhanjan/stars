@@ -1,9 +1,36 @@
 import * as THREE from "three";
-import GUI from "lil-gui";  
+import GUI from "lil-gui";
 import { bigDipperStars, cassiopeiaStars, defaultStars, leoStars, orionStars } from "./constants/constant";
 import { createBigDipper, createCassiopeia, createLeo, createOrion } from "./utils/animation";
 import { constellationLineMaterial } from "./utils/connectingLines";
 import { generateGalaxy } from "./utils/generateGalaxy";
+
+const parameters = {};
+parameters.count = 6000;
+parameters.size = 0.001;
+parameters.radius = 5;
+parameters.branches = 5;
+parameters.spin = 1;
+parameters.randomness = 0.5;
+parameters.randomnessPower = 3;
+parameters.insideColor = "#ffffff";
+parameters.outsideColor = "#ffffff";
+
+// Function to calculate responsive parameters based on screen size
+const getResponsiveParameters = () => {
+  const aspectRatio = window.innerWidth / window.innerHeight;
+  const screenArea = window.innerWidth * window.innerHeight;
+  const baseArea = 1920 * 1080; // Reference screen size
+  const areaRatio = Math.sqrt(screenArea / baseArea);
+  
+  return {
+    count: Math.max(2000, Math.min(8000, parameters.count * areaRatio)),
+    radius: Math.max(3, parameters.radius * Math.max(0.7, areaRatio)),
+    size: parameters.size * Math.max(0.8, areaRatio),
+    // Adjust randomness for smaller screens to prevent clustering
+    randomness: aspectRatio < 1 ? parameters.randomness * 1.2 : parameters.randomness
+  };
+};
 const gui = new GUI();
 const canvas = document.querySelector("canvas.webgl");
 
@@ -50,17 +77,6 @@ window.addEventListener("mousemove", (event) => {
   mouse.y = (event.clientY / window.innerHeight - 1.9) * 0.2;
 });
 
-const parameters = {};
-parameters.count = 6000;
-parameters.size = 0.001;
-parameters.radius = 5;
-parameters.branches = 5;
-parameters.spin = 1;
-parameters.randomness = 0.5;
-parameters.randomnessPower = 3;
-parameters.insideColor = "#ffffff";
-parameters.outsideColor = "#ffffff";
-
 let geometry = null;
 let material = null;
 let points = null;
@@ -74,15 +90,23 @@ const constellationMode = {
   animationProgress: 0,
 };
 
-const constellationStarMaterial = new THREE.PointsMaterial({
-  color: 0xffffff,
-  size: 0.05,
-  transparent: true,
-  opacity: 0.6,
-  map: createCircleTexture(),
-  alphaTest: 0.001,
-  sizeAttenuation: true
-});
+const createConstellationStarMaterial = () => {
+  const responsiveParams = getResponsiveParameters();
+  const baseSize = 0.05;
+  const responsiveSize = baseSize * Math.max(0.8, Math.sqrt(window.innerWidth * window.innerHeight) / Math.sqrt(1920 * 1080));
+  
+  return new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: responsiveSize,
+    transparent: true,
+    opacity: 0.6,
+    map: createCircleTexture(),
+    alphaTest: 0.001,
+    sizeAttenuation: true
+  });
+};
+
+const constellationStarMaterial = createConstellationStarMaterial();
 
 
 function createCircleTexture() {
@@ -244,7 +268,10 @@ const clearConstellation = () => {
 };
 
 const initializeScene = () => {
-  const result = generateGalaxy(parameters, renderer, geometry, material, points, scene);
+  const responsiveParams = getResponsiveParameters();
+  const mergedParams = { ...parameters, ...responsiveParams };
+  
+  const result = generateGalaxy(mergedParams, renderer, geometry, material, points, scene);
   geometry = result.geometry;
   material = result.material;
   points = result.points;
@@ -319,7 +346,21 @@ const sizes = {
   height: window.innerHeight,
 };
 
-window.addEventListener("resize", () => {
+// Debounce function for performance optimization
+const debounce = (func, wait) => {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+};
+
+// Resize handler function
+const handleResize = () => {
   // Update sizes
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
@@ -331,7 +372,39 @@ window.addEventListener("resize", () => {
   // Update renderer
   renderer.setSize(sizes.width, sizes.height);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-});
+  
+  // Regenerate galaxy with responsive parameters for new screen size
+  const responsiveParams = getResponsiveParameters();
+  const mergedParams = { ...parameters, ...responsiveParams };
+  
+  if (geometry) {
+    geometry.dispose();
+  }
+  if (material) {
+    material.dispose();
+  }
+  if (points) {
+    scene.remove(points);
+  }
+  
+  const result = generateGalaxy(mergedParams, renderer, geometry, material, points, scene);
+  geometry = result.geometry;
+  material = result.material;
+  points = result.points;
+  
+  // Update constellation star material size for responsiveness
+  const newConstellationMaterial = createConstellationStarMaterial();
+  if (interactiveMode.allConstellationStars) {
+    interactiveMode.allConstellationStars.material = newConstellationMaterial;
+  }
+  
+  // Update any active constellation stars
+  constellationMode.constellationStars.forEach(stars => {
+    stars.material = newConstellationMaterial;
+  });
+};
+
+window.addEventListener("resize", debounce(handleResize, 150));
 
 const camera = new THREE.PerspectiveCamera(
   75,
