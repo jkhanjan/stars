@@ -6,7 +6,7 @@ import { constellationLineMaterial } from "./utils/connectingLines";
 import { generateGalaxy } from "./utils/generateGalaxy";
 
 const parameters = {};
-parameters.count = 5000;
+parameters.count = 4000;
 parameters.size = 0.001;
 parameters.radius = 5;
 parameters.branches = 5;
@@ -278,7 +278,7 @@ const initializeScene = () => {
   createDefaultConstellationPoints();
 };
 
-const constellationFolder = gui.addFolder("� Constellations");
+const constellationFolder = gui.addFolder("Constellations");
 
 const constellationInfo = { currentConstellation: "None" };
 constellationFolder.add(constellationInfo, "currentConstellation").name("Current").listen();
@@ -288,7 +288,7 @@ constellationFolder.add({
     clearConstellation();
     createBigDipper(constellationMode, createConstellationStars, scene);
   }
-}, "createBigDipper").name("⭐ Big Dipper").onChange(() => {
+}, "createBigDipper").name(" Big Dipper").onChange(() => {
   constellationInfo.currentConstellation = "Big Dipper";
 });
 constellationFolder.add({ 
@@ -296,7 +296,7 @@ constellationFolder.add({
     clearConstellation();
     createOrion(constellationMode, createConstellationStars, scene);
   }
-}, "createOrion").name("🏹 Orion").onChange(() => {
+}, "createOrion").name("Orion").onChange(() => {
   constellationInfo.currentConstellation = "Orion";
 });
 constellationFolder.add({ 
@@ -304,7 +304,7 @@ constellationFolder.add({
     clearConstellation();
     createCassiopeia(constellationMode, createConstellationStars, scene);
   }
-}, "createCassiopeia").name("👑 Cassiopeia").onChange(() => {
+}, "createCassiopeia").name("Cassiopeia").onChange(() => {
   constellationInfo.currentConstellation = "Cassiopeia";
 });
 constellationFolder.add({ 
@@ -312,7 +312,7 @@ constellationFolder.add({
     clearConstellation();
     createLeo(constellationMode, createConstellationStars, scene);
   }
-}, "createLeo").name("🦁 Leo").onChange(() => {
+}, "createLeo").name("Leo").onChange(() => {
   constellationInfo.currentConstellation = "Leo";
 });
 
@@ -322,25 +322,25 @@ constellationFolder.add({
     clearConstellation();
     constellationInfo.currentConstellation = "None";
   }
-}, "clear").name("�️ Clear");
+}, "clear").name("Clear");
 
 // Line appearance controls
-const lineFolder = constellationFolder.addFolder("📏 Line Style");
+const lineFolder = constellationFolder.addFolder(" Line Style");
 lineFolder.addColor(constellationLineMaterial, "color").name("Line Color");
 lineFolder.add(constellationLineMaterial, "opacity", 0.1, 1, 0.1).name("Line Opacity");
 
 // Point appearance controls
-const pointFolder = constellationFolder.addFolder("⭐ Point Style");
-pointFolder.addColor(constellationStarMaterial, "color").name("Point Color");
-pointFolder.add(constellationStarMaterial, "size", 0.05, 0.3, 0.01).name("Point Size");
-pointFolder.add(constellationStarMaterial, "opacity", 0.1, 1, 0.1).name("Point Opacity");
+// const pointFolder = constellationFolder.addFolder("Point Style");
+// pointFolder.addColor(constellationStarMaterial, "color").name("Point Color");
+// pointFolder.add(constellationStarMaterial, "size", 0.05, 0.3, 0.01).name("Point Size");
+// pointFolder.add(constellationStarMaterial, "opacity", 0.1, 1, 0.1).name("Point Opacity");
 
 // Interactive mode controls
-const interactiveFolder = constellationFolder.addFolder("🎯 Interactive Mode");
-interactiveFolder.add(interactiveMode, "isActive").name("Click to Connect");
-interactiveFolder.add({ 
-  clear: () => clearInteractiveConnections()
-}, "clear").name("🗑️ Clear Connections");
+// const interactiveFolder = constellationFolder.addFolder("🎯 Interactive Mode");
+// interactiveFolder.add(interactiveMode, "isActive").name("Click to Connect");
+// interactiveFolder.add({ 
+//   clear: () => clearInteractiveConnections()
+// }, "clear").name("🗑️ Clear Connections");
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight,
